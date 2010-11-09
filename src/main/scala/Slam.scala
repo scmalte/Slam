@@ -14,17 +14,17 @@ class Slam(val global: Global) extends PluginComponent {
 	
   class TraverserPhase(prev: Phase) extends StdPhase(prev) {
     def apply(unit: CompilationUnit) {
-      // newTraverser().traverse(unit.body)
+      newTraverser().traverse(unit.body)
     }
   }
 
   def newTraverser(): Traverser = new ForeachTreeTraverser(check)
 
-  def check(tree: Tree): Unit = () /* tree match {
-    // case Apply(fun, args) =>
-      // println("traversing application of "+ fun)
+  def check(tree: Tree): Unit = tree match {
+    case Apply(fun, args) =>
+      println("traversing application of "+ fun)
 			
     case _ =>
-			println("...")
-  } */
+			println(tree)
+  }
 }

@@ -20,7 +20,7 @@ object Main {
 		 */		
 		settings.classpath.value = System.getProperty("java.class.path")		
 		settings.bootclasspath.value = System.getProperty("sun.boot.class.path")
-		settings.bootclasspath.value += ";lib/scala-library.jar;lib/scala-compiler.jar"
+		settings.bootclasspath.value += ";lib/scala-library.jar"
 		
 		// settings.elidebelow.value = 2 * annotation.elidable.ASSERTION
 		// settings.noassertions.value = true		
