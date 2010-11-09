@@ -1,0 +1,1 @@
+java %SBT_OPTS% -Xmx256M -Dfile.encoding=UTF-8 -jar "tools/sbt-launch-0.7.4.jar" %*
