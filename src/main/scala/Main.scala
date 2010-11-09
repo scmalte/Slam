@@ -25,12 +25,8 @@ object Main {
 		// settings.elidebelow.value = 2 * annotation.elidable.ASSERTION
 		// settings.noassertions.value = true		
 		// println("settings.elidebelow.value = " + settings.elidebelow.value)
-			
-		// println("user.dir = " + System.getProperty("user.dir"))
-		// println("java.class.path = " + System.getProperty("java.class.path"))
-		// println("sun.boot.class.path = " + System.getProperty("sun.boot.class.path"))
-		
-		val infiles = "C:/scmalte/Develop/SymbEx/Implementing/Verifier/src/main/scala/ast/ASTConverter.scala" :: Nil
+				
+		val infiles = "src/main/scala/Main.scala" :: Nil
 		
     val command = new CompilerCommand(infiles, settings) {
       /** The command name that will be printed in in the usage message.
@@ -56,6 +52,7 @@ object Main {
 
     val runner = new PluginRunner(settings)
     val run = new runner.Run
+
     run.compile(command.files)
   }
 }

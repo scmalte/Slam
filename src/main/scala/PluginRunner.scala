@@ -26,7 +26,7 @@ class PluginRunner(settings: Settings, reporter: Reporter)
    */
   override protected def computeInternalPhases() {
     phasesSet += syntaxAnalyzer
-    phasesSet += analyzer.namerFactory
+    // phasesSet += analyzer.namerFactory
     phasesSet += analyzer.typerFactory
     phasesSet += superAccessors			       // add super accessors
     phasesSet += pickler			       // serialize symbol tables
