@@ -18,6 +18,29 @@ class Slam(val global: Global) extends Plugin { // with Logging {
 	val description = "Creates class diagrams"
 	val components = List[PluginComponent](Component)
 	
+	var scalafile: Option[String] = None
+	var gvfile: Option[String] = None
+	var pdffile: Option[String] = None
+	
+	override def processOptions(options: List[String], error: String => Unit) {
+		for (option <- options) {
+			// if (option.startsWith("src:"))
+				// scalafile = Some(option.substring("src:".length))
+			if (option.startsWith("gv:"))
+				gvfile = Some(option.substring("gv:".length))
+			// else if (option.startsWith("pdf:")) {
+				// pdffile = Some(option.substring("pdf:".length))
+			else
+				error("Option not understood: " + option)
+		}
+	}
+	
+	override val optionsHelp: Option[String] = Some("""
+			-P:Slam:src:<file>             Scala file to parse
+			-P:Slam:gv:<file>              Intermediate Graphviz file
+		""".dedent)
+						// -P:Slam:pdf:<file>             Final pdf
+	
 	private object Component extends PluginComponent {
 		val global: Slam.this.global.type = Slam.this.global
 		val phaseName = "slam"
@@ -25,13 +48,13 @@ class Slam(val global: Global) extends Plugin { // with Logging {
 		val runsAfter = List[String]("parser")
 		override val runsRightAfter = Some("parser")
 		
-		val ignores = Set("scala.ScalaObject", "scala.Product", "scala.AnyRef")
+		val ignores = Set("scala.ScalaObject", "scala.Product", "scala.AnyRef", "Positional", "ASTNode")
 		
 		def newPhase(_prev: Phase) = new SlamPhase(_prev)
     
 		object Styles {
 			val ft = "Corbel"
-			val mft = ft // + " Italic"
+			val mft = ft + " Italic"
 			val fts = 11
 			val sfts = (fts * 0.5).round
 		}
@@ -39,7 +62,7 @@ class Slam(val global: Global) extends Plugin { // with Logging {
     class SlamPhase(prev: Phase) extends StdPhase(prev) {		
 			override val name = Slam.this.name
 
-			lazy val outfile = new FileWriter("output.gv")			
+			lazy val outfile = new FileWriter(gvfile.get)
 			val nodes = new StringBuffer()
 			val edges = new StringBuffer()
 			
@@ -70,10 +93,10 @@ class Slam(val global: Global) extends Plugin { // with Logging {
 					digraph "Slam" {
 						graph [bgcolor=transparent]
 
-						node [fontsize=%1$s fontname="%2$s" shape=rect width=0 height=0
-									style="rounded"] //invis
+						node [fontsize=%1$s fontname="%2$s" width=0 height=0 penwidth=1.5]
 
-						edge [fontsize=%1$s fontname="%2$s" style=solid color=gray]
+						edge [fontsize=%1$s fontname="%2$s" style=solid color=gray50
+									arrowsize=0.5]
 				""".dedent.format(fts, ft))
 			}
 			
@@ -84,29 +107,58 @@ class Slam(val global: Global) extends Plugin { // with Logging {
 			def writeClassDef(cl: ClassDef) {
 					import Styles._
 
-					println(cl.name)
-					
+					println(cl.name)					
 					val lin = cl.impl.parents.filterNot(t => ignores.contains(t.toString))
-					
 					println("\t parents = " + lin)
-					// println("\t cl = " + cl)
-					// println("\t cl.impl.self = " + cl.impl.self)
 					
-					val modsstr = "" // SFlags.flagsToString(cl.mods.flags)
+					/* Also returns synthetic modifiers, e.g. <interface>, which we
+ 					 * don't want to appear in the list:
+					 *
+					 *   val modsstr = SFlags.flagsToString(cl.mods.flags)
+					 */
 					
-					val compstr = 
-						if (cl.mods.hasFlag(GFlags.TRAIT)) "trait"
+					val mods = Map(GFlags.FINAL -> "final", GFlags.ABSTRACT -> "%s",
+							GFlags.SEALED -> "sealed", GFlags.CASE -> "case",
+							GFlags.PROTECTED -> "protected", GFlags.PRIVATE -> "private")
+					
+					var modsstr = mods.map(f => if (cl.mods.hasFlag(f._1)) f._2)
+														.collect{case s: String => s}.mkString(" ")
+					
+					if (cl.mods.hasFlag(GFlags.TRAIT))
+						modsstr = modsstr.format("")
+					else
+						modsstr = modsstr.format("abstract")
+					
+					var (compstr, shape, color) = 
+						if (cl.mods.hasFlag(GFlags.TRAIT))
+							("trait", "component", "darkviolet")
             // else if (cl.mods.hasFlag(GFlags.MODULE)) "object"
-            else "class"
+            else
+							("class", "rect", "black")
+					
+					if (cl.mods.hasFlag(GFlags.CASE))
+						color = "forestgreen"
+					
+					val style =
+						if (cl.mods.hasFlag(GFlags.CASE))
+							"rounded"
+						else
+							"solid" /* Default style anyway */
+					
+					val font =
+						if (cl.mods.hasFlag(GFlags.ABSTRACT)
+								&& !cl.mods.hasFlag(GFlags.TRAIT))
+							mft
+						else
+							ft
 					
 					nodes.append("""
 						%1$s [label=<
 							<font point-size="%2$s" face="%3$s">%4$s %5$s</font>
 							<br/>%1$s
-						>]
-						""".dedent.format(cl.name, sfts, mft, modsstr, compstr))
-					
-					// println("\t mods = " + cl.mods)
+						> shape=%6$s style=%7$s color=%8$s]
+						""".dedent.format(cl.name, sfts, font, modsstr, compstr, shape,
+														  style, color))
 					
 					edges.append(
 						if (lin.nonEmpty) {
